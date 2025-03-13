@@ -19,7 +19,7 @@
             </style>
         @endif
     </head>
-    <body class="bg-gray-100 text-gray-800">
+    <body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col">
         {{-- Nav Bar --}}
         <nav class="bg-gray-800 shadow">
             <div class="container mx-auto px-6 py-3">
@@ -63,19 +63,19 @@
         </script>
         
 
-        {{-- Header --}}
-        <header class="p-6 bg-white shadow">
-            <h1 class="text-2xl font-bold">{{ $header }}</h1>
-        </header>
+         {{-- Header --}}
+    <header class="p-6 bg-white shadow">
+        <h1 class="text-2xl font-bold">{{ $header }}</h1>
+    </header>
 
-        {{-- Main Content --}}
-        <main class="container mx-auto p-6">
-            {{ $slot }}
-        </main>
+    {{-- Main Content --}}
+    <main class="container mx-auto p-6 flex-grow">
+        {{ $slot }}
+    </main>
 
-        {{-- Footer --}}
-        <footer class="p-6 bg-white shadow mt-8 text-center">
-            &copy; {{ date('Y') }} My Laravel App. All rights reserved.
-        </footer>
+    {{-- Footer --}}
+    <footer class="p-6 bg-white shadow text-center">
+        &copy; {{ date('Y') }} AUM. All rights reserved.
+    </footer>
     </body>
 </html>

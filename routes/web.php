@@ -12,10 +12,12 @@ Route::controller(EmployeeController::class)->group(function () {
     Route::get('employees', 'index')->name('employees.index');
     Route::get('/employees/selected', 'selected')->name('employees.selected');
     Route::post('/employees/selected', 'updateSelected')->name('employees.updateSelected');
-    // Route::get('employees/{id}', 'show')->name('employees.show');
+    Route::get('employees/{employee_id}', 'show')->name('employees.show');
 });
 
 
 Route::controller(ApplicationController::class)->group(function () {
-    Route::get('applications', 'index');
+    Route::get('applications', 'index')->name('applications.index');
+    Route::get('applications/{id}', 'show')->name('applications.show');
 });
+

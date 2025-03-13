@@ -3,9 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\EmployeeView;
+use App\Models\Employee;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Pagination\LengthAwarePaginator;
 
 
 class EmployeeController extends Controller
@@ -135,40 +134,37 @@ class EmployeeController extends Controller
 
 
 
-    public function show($id)
-    {
-        // Retrieve a single employee by id
-        $employee = EmployeeView::where('employee_id', $id)->first();
-
-        if (!$employee) {
-            abort(404, 'Employee not found');
-        }
-
-        return view('employees.show', compact('employee'));
-    }
-    public function selected()
+public function show($employee_id)
 {
-    // Retrieve the selected employees from the session
-    $selectedEmployees = session('selectedEmployees', []);
-    return view('employees.selected', compact('selectedEmployees'));
+    $employee = Employee::where('employee_id', $employeeId = $employee_id = $employee_id = $employee_id)->firstOrFail();
+
+    return view('employees.show', compact('employee'));
 }
 
 
 public function updateSelected(Request $request)
 {
     $data = $request->validate([
-        'selectedEmployees' => 'required|array',
+        'selectedEmployees' => 'present|array',
         'selectedEmployees.*.fname' => 'required|string|max:255',
         'selectedEmployees.*.lname' => 'required|string|max:255',
-        'selectedEmployees.*.email' => 'required|string|max:255',
+        'selectedEmployees.*.email' => 'required|string|max:255', // or 'required|email|max:255' if you need valid emails
     ]);
 
-    session(['selectedEmployees' => $data['selectedEmployees']]);
+    // If the selectedEmployees array is empty, clear it from the session.
+    if (empty($data['selectedEmployees'])) {
+        session()->forget('selectedEmployees');
+    } else {
+        session(['selectedEmployees' => $data['selectedEmployees']]);
+    }
 
     return response()->json([
         'status' => 'success',
-        'selectedEmployees' => session('selectedEmployees')
+        'selectedEmployees' => session('selectedEmployees') ?? []
     ]);
 }
+
+
+
 
 }

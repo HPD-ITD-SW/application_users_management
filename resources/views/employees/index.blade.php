@@ -8,7 +8,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex flex-col lg:flex-row gap-6">
                 <!-- Left Side Panel: Search Filters and Selected Employees -->
-                <div class="lg:w-1/4 bg-white shadow rounded-lg p-6">
+                <div class="lg:w-1/3 bg-white shadow rounded-lg p-6">
                     <form action="{{ route('employees.index') }}" method="GET">
                         <!-- Unified Text Search: Name or Email -->
                         <div class="mb-4">
@@ -64,7 +64,20 @@
                     <!-- Selected Employees Drop Zone -->
                     <div id="selected-employees-container"
                         class="mt-6 border-2 border-dashed border-gray-300 rounded p-4">
-                        <h3 class="text-xl font-bold text-gray-800 mb-2">Selected Employees</h3>
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xl font-bold text-gray-800 mb-2">
+                                Selected Employees
+                            </h3>
+                            <button id="clear-selected" title="Clear Selected Employees"
+                                class="text-red-500 hover:text-red-700">
+                                <!-- Inline Trashcan Icon (using an SVG) -->
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4a1 1 0 011 1v1H9V4a1 1 0 011-1z" />
+                                </svg>
+                            </button>
+                        </div>
                         <!-- Scrollable container: max-height triggers scrolling after ~6 rows -->
                         <div class="max-h-60 overflow-y-auto">
                             <table class="min-w-full">
@@ -83,7 +96,7 @@
                                 </thead>
                                 <tbody id="selected-employees-tbody">
                                     <!-- Server-populated selected employees will be loaded here -->
-                                    @if (session('selectedEmployees'))
+                                    @if (session('selectedEmployees') && count(session('selectedEmployees')) > 0)
                                         @foreach (session('selectedEmployees') as $emp)
                                             <tr data-email="{{ $emp['email'] }}">
                                                 <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
@@ -94,6 +107,13 @@
                                                     {{ $emp['email'] }}</td>
                                             </tr>
                                         @endforeach
+                                    @else
+                                        <tr id="placeholder-row">
+                                            <td colspan="3"
+                                                class="px-4 py-2 whitespace-nowrap text-center text-sm text-gray-500">
+                                                Drag and drop employees here
+                                            </td>
+                                        </tr>
                                     @endif
                                 </tbody>
                             </table>
@@ -140,15 +160,18 @@
                                     <tr draggable="true"
                                         class="employee-row transition transform hover:scale-105 hover:shadow-lg hover:bg-gray-50">
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm text-gray-900 employee-fname">{{ $employee->fname }}
+                                            <div class="text-sm text-gray-900 employee-fname">
+                                                {{ $employee->fname }}
                                             </div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm text-gray-900 employee-lname">{{ $employee->lname }}
+                                            <div class="text-sm text-gray-900 employee-lname">
+                                                {{ $employee->lname }}
                                             </div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm text-gray-900 employee-email">{{ $employee->email }}
+                                            <div class="text-sm text-gray-900 employee-email">
+                                                {{ $employee->email }}
                                             </div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
@@ -167,7 +190,7 @@
                                             <div class="text-sm text-gray-900">1</div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-center">
-                                            <a href={{-- "{{ route('employees.show', $employee->employee_id) }}" --}}
+                                            <a href="{{ route('employees.show', $employee->employee_id) }}"
                                                 class="text-indigo-600 hover:text-indigo-900">View</a>
                                         </td>
                                     </tr>
@@ -187,101 +210,135 @@
     <!-- Inline JavaScript for Drag & Drop with Session Persistence -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-                    console.log("Drag and drop script loaded.");
+            console.log("Drag and drop script loaded.");
 
-                    // Function to update the drop zone from session data (if needed)
-                    function updateDropZone(selectedEmployees) {
-                        const dropZone = document.getElementById('selected-employees-tbody');
-                        dropZone.innerHTML = ''; // Clear existing rows
-                        selectedEmployees.forEach(emp => {
-                            const newRow = document.createElement("tr");
-                            newRow.setAttribute("data-email", emp.email);
-                            newRow.innerHTML = `
-                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">${emp.fname}</td>
-                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">${emp.lname}</td>
-                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">${emp.email}</td>
-                    `;
-                            dropZone.appendChild(newRow);
-                        });
-                    }
-
-                    // Retrieve any previously saved selection from the server by reading the rendered table
-                    // (Since the session is already rendered in the view via Blade, we skip an AJAX call here.)
-
-                    const dropZoneContainer = document.getElementById('selected-employees-container');
-                    dropZoneContainer.addEventListener('dragover', function(e) {
-                        e.preventDefault();
-                        dropZoneContainer.classList.add('bg-gray-100');
+            function updateDropZone(selectedEmployees) {
+                const dropZone = document.getElementById('selected-employees-tbody');
+                dropZone.innerHTML = ''; // Clear existing rows
+                if (selectedEmployees.length === 0) {
+                    const placeholderRow = document.createElement("tr");
+                    placeholderRow.innerHTML =
+                        `<td colspan="3" class="px-4 py-2 whitespace-nowrap text-center text-sm text-gray-500">Drag and drop employees here</td>`;
+                    placeholderRow.id = "placeholder-row";
+                    dropZone.appendChild(placeholderRow);
+                } else {
+                    selectedEmployees.forEach(emp => {
+                        const newRow = document.createElement("tr");
+                        newRow.setAttribute("data-email", emp.email);
+                        newRow.innerHTML = `
+                    <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">${emp.fname}</td>
+                    <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">${emp.lname}</td>
+                    <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">${emp.email}</td>
+                `;
+                        dropZone.appendChild(newRow);
                     });
-                    dropZoneContainer.addEventListener('dragleave', function(e) {
-                        e.preventDefault();
-                        dropZoneContainer.classList.remove('bg-gray-100');
+                }
+            }
+
+            // Function to clear selected employees via AJAX POST with an empty array
+            function clearSelectedEmployees() {
+                fetch("{{ route('employees.updateSelected') }}", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Accept": "application/json",
+                            "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                        },
+                        credentials: "same-origin",
+                        body: JSON.stringify({
+                            selectedEmployees: []
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log("Session updated:", data);
+                        updateDropZone(data.selectedEmployees);
+                    })
+                    .catch(err => console.error(err));
+            }
+
+
+            // Attach event listener to the clear button (trashcan icon)
+            const clearButton = document.getElementById('clear-selected');
+            if (clearButton) {
+                clearButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    clearSelectedEmployees();
+                });
+            }
+
+            // Drop zone events
+            const dropZoneContainer = document.getElementById('selected-employees-container');
+            dropZoneContainer.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                dropZoneContainer.classList.add('bg-gray-100');
+            });
+            dropZoneContainer.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                dropZoneContainer.classList.remove('bg-gray-100');
+            });
+            dropZoneContainer.addEventListener('drop', function(e) {
+                e.preventDefault();
+                dropZoneContainer.classList.remove('bg-gray-100');
+                const data = e.dataTransfer.getData("text/plain");
+                console.log("Data dropped:", data);
+                let employee;
+                try {
+                    employee = JSON.parse(data);
+                } catch (error) {
+                    console.error("Error parsing employee data:", error);
+                    return;
+                }
+                // Get current selection from the table by iterating over rows in the drop zone
+                let selectedEmployees = [];
+                const rows = document.querySelectorAll('#selected-employees-tbody tr');
+                rows.forEach(row => {
+                    // Skip the placeholder row if present
+                    if (row.id === "placeholder-row") return;
+                    selectedEmployees.push({
+                        fname: row.children[0].textContent.trim(),
+                        lname: row.children[1].textContent.trim(),
+                        email: row.children[2].textContent.trim()
                     });
-                    dropZoneContainer.addEventListener('drop', function(e) {
-                        e.preventDefault();
-                        dropZoneContainer.classList.remove('bg-gray-100');
-                        const data = e.dataTransfer.getData("text/plain");
-                        console.log("Data dropped:", data);
-                        let employee;
-                        try {
-                            employee = JSON.parse(data);
-                        } catch (error) {
-                            console.error("Error parsing employee data:", error);
-                            return;
-                        }
-                        // Get current selection from the table by iterating over rows in the drop zone
-                        let selectedEmployees = [];
-                        const rows = document.querySelectorAll('#selected-employees-tbody tr');
-                        rows.forEach(row => {
-                            selectedEmployees.push({
-                                fname: row.children[0].textContent.trim(),
-                                lname: row.children[1].textContent.trim(),
-                                email: row.children[2].textContent.trim()
-                            });
-                        });
-                        // Prevent duplicate entries
-                        if (selectedEmployees.some(emp => emp.email === employee.email)) return;
-                        selectedEmployees.push(employee);
+                });
+                // Prevent duplicate entries
+                if (selectedEmployees.some(emp => emp.email === employee.email)) return;
+                selectedEmployees.push(employee);
 
-                        // Update session by sending an AJAX POST request
-                        fetch("{{ route('employees.updateSelected') }}", {
-                                method: "POST",
-                                headers: {
-                                    "Content-Type": "application/json",
-                                    "Accept": "application/json",
-                                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                                },
-                                credentials: "same-origin",
-                                body: JSON.stringify({
-                                    selectedEmployees: selectedEmployees
-                                })
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                console.log("Session updated:", data);
-                                updateDropZone(data.selectedEmployees);
-                            })
-                            .catch(err => console.error(err));
-                    });
+                // Update session by sending an AJAX POST request
+                fetch("{{ route('employees.updateSelected') }}", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Accept": "application/json",
+                            "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                        },
+                        credentials: "same-origin",
+                        body: JSON.stringify({
+                            selectedEmployees: selectedEmployees
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log("Session updated:", data);
+                        updateDropZone(data.selectedEmployees);
+                    })
+                    .catch(err => console.error(err));
+            });
 
-
-
-                        // Attach dragstart event to each employee row
-                        const rows = document.querySelectorAll('.employee-row');
-                        rows.forEach(function(row) {
-                            row.addEventListener('dragstart', function(e) {
-                                const employeeData = {
-                                    fname: row.querySelector('.employee-fname').textContent
-                                        .trim(),
-                                    lname: row.querySelector('.employee-lname').textContent
-                                        .trim(),
-                                    email: row.querySelector('.employee-email').textContent
-                                        .trim()
-                                };
-                                console.log("Dragging employee:", employeeData);
-                                e.dataTransfer.setData("text/plain", JSON.stringify(employeeData));
-                            });
-                        });
-                    });
+            // Attach dragstart event to each employee row
+            const rows = document.querySelectorAll('.employee-row');
+            rows.forEach(function(row) {
+                row.addEventListener('dragstart', function(e) {
+                    const employeeData = {
+                        fname: row.querySelector('.employee-fname').textContent.trim(),
+                        lname: row.querySelector('.employee-lname').textContent.trim(),
+                        email: row.querySelector('.employee-email').textContent.trim()
+                    };
+                    console.log("Dragging employee:", employeeData);
+                    e.dataTransfer.setData("text/plain", JSON.stringify(employeeData));
+                });
+            });
+        });
     </script>
 </x-layout>
