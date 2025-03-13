@@ -1,7 +1,19 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\ApplicationController;
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('home');
+});
+
+Route::controller(EmployeeController::class)->group(function () {
+    Route::get('employees', 'index')->name('employees.index');
+    Route::get('employees/{id}', 'show')->name('employees.show');
+});
+
+
+Route::controller(ApplicationController::class)->group(function () {
+    Route::get('applications', 'index');
 });
