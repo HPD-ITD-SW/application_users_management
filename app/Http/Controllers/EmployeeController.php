@@ -100,19 +100,31 @@ class EmployeeController extends Controller
         ['path' => $request->url(), 'query' => $request->query()]
     );
 
-    // Fetch unique departments (for filter panel)
+    // Fetch unique departments (sorted alphabetically)
     $uniqueDepartments = DB::connection('viewEmployeesOnly')
         ->table('vw_active_employees')
         ->select('division')
         ->distinct()
+        ->orderBy('division', 'asc')
         ->pluck('division');
 
-    // Fetch unique statuses (for filter panel)
-    $uniqueStatuses = DB::connection('viewEmployeesOnly')
+    // Fetch unique statuses by unioning Active and Inactive:
+    $activeStatus = DB::connection('viewEmployeesOnly')
         ->table('vw_active_employees')
-        ->select('active')
-        ->distinct()
-        ->pluck('active');
+        ->select(DB::raw("'Active' as active"))
+        ->distinct();
+
+    $archivedStatus = DB::connection('viewEmployeesOnly')
+        ->table('vw_archived_employees')
+        ->select(DB::raw("'Inactive' as active"))
+        ->distinct();
+
+    // Since union() does not support orderBy easily, convert to a collection and sort:
+    $uniqueStatuses = collect($activeStatus->union($archivedStatus)->get())
+        ->pluck('active')
+        ->unique()
+        ->sort()
+        ->values();
 
     return view('employees.index', [
         'employees'   => $paginatedEmployees,
@@ -120,6 +132,7 @@ class EmployeeController extends Controller
         'statuses'    => $uniqueStatuses,
     ]);
 }
+
 
 
     public function show($id)
@@ -134,10 +147,28 @@ class EmployeeController extends Controller
         return view('employees.show', compact('employee'));
     }
     public function selected()
-    {
-        // Retrieve a list of selected employees
-        $selectedEmployees = EmployeeView::where('selected', true)->get();
+{
+    // Retrieve the selected employees from the session
+    $selectedEmployees = session('selectedEmployees', []);
+    return view('employees.selected', compact('selectedEmployees'));
+}
 
-        return view('employees.selected', compact('selectedEmployees'));
-    }
+
+public function updateSelected(Request $request)
+{
+    $data = $request->validate([
+        'selectedEmployees' => 'required|array',
+        'selectedEmployees.*.fname' => 'required|string|max:255',
+        'selectedEmployees.*.lname' => 'required|string|max:255',
+        'selectedEmployees.*.email' => 'required|string|max:255',
+    ]);
+
+    session(['selectedEmployees' => $data['selectedEmployees']]);
+
+    return response()->json([
+        'status' => 'success',
+        'selectedEmployees' => session('selectedEmployees')
+    ]);
+}
+
 }
