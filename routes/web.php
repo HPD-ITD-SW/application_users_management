@@ -11,6 +11,7 @@ Route::get('/', function () {
 Route::controller(EmployeeController::class)->group(function () {
     Route::get('employees', 'index')->name('employees.index');
     Route::get('employees/{id}', 'show')->name('employees.show');
+    Route::get('employees/selected', 'selected')->name('employees.selected');
 });
 
 

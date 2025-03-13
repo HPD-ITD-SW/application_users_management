@@ -133,4 +133,11 @@ class EmployeeController extends Controller
 
         return view('employees.show', compact('employee'));
     }
+    public function selected()
+    {
+        // Retrieve a list of selected employees
+        $selectedEmployees = EmployeeView::where('selected', true)->get();
+
+        return view('employees.selected', compact('selectedEmployees'));
+    }
 }
