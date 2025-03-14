@@ -95,6 +95,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="selected-employees-tbody">
+                                    
                                     <!-- Server-populated selected employees will be loaded here -->
                                     @if (session('selectedEmployees') && count(session('selectedEmployees')) > 0)
                                         @foreach (session('selectedEmployees') as $emp)
@@ -127,7 +128,7 @@
                 </div>
 
                 <!-- Right Side: Employee Table -->
-                <div class="lg:w-3/4">
+                <div class="w-full">
                     <div class="bg-white shadow rounded-lg">
                         <table id="employees-table" class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
@@ -146,7 +147,7 @@
                                         Department</th>
                                     <th
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Status</th>
+                                        HR Status</th>
                                     <th
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         # of Apps</th>
@@ -189,7 +190,7 @@
                                             </div>
                                         </td>
                                         <td class="whitespace-nowrap text-center">
-                                            <div class="text-sm text-gray-900">1</div>
+                                            <div class="text-sm text-gray-900">{{ $employee->active_applications_count }}</div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-center">
                                             <a href="{{ route('employees.show', $employee->employee_id) }}"
@@ -276,6 +277,9 @@
 
             employeeRows.forEach(row => {
                 row.addEventListener('click', function() {
+                    if (event.target.closest('a')) {
+                        return;
+                    }
                     const employeeData = {
                         fname: row.querySelector('.employee-fname').textContent.trim(),
                         lname: row.querySelector('.employee-lname').textContent.trim(),

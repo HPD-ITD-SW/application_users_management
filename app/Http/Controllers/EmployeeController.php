@@ -13,30 +13,34 @@ class EmployeeController extends Controller
 {
     // Validate and sanitize incoming request inputs
     $validated = $request->validate([
-        'search' => 'nullable|string|max:255',
+        'search'      => 'nullable|string|max:255',
         'departments' => 'nullable|array',
         'departments.*' => 'string|max:255',
-        'statuses' => 'nullable|array',
-        'statuses.*' => 'string|max:255',
+        'statuses'    => 'nullable|array',
+        'statuses.*'  => 'string|max:255',
     ]);
 
-    // Retrieve sanitized filter inputs
     $search = trim($validated['search'] ?? '');
     $departments = $validated['departments'] ?? [];
     $statuses = $validated['statuses'] ?? [];
 
-    // Build the active and archived queries using the query builder
+    // Run a separate query (using default connection) for active application counts.
+    $activeCounts = DB::table('employee_applications')
+        ->select('employee_id', DB::raw("COUNT(*) as active_applications_count"))
+        ->where('status', 'Active')
+        ->whereNull('deleted_at')
+        ->groupBy('employee_id')
+        ->pluck('active_applications_count', 'employee_id');
+
+    // Build the active and archived queries using the view connection (without subqueries)
     $active = DB::connection('viewEmployeesOnly')->table('vw_active_employees');
     $archived = DB::connection('viewEmployeesOnly')->table('vw_archived_employees');
 
     // Apply unified text search on fname, lname, and email if provided
     if ($search) {
-        // Split the search string into parts based on whitespace
         $parts = preg_split('/\s+/', $search, -1, PREG_SPLIT_NO_EMPTY);
 
         if (count($parts) > 1) {
-            // For multiple parts, ensure that each part is found in either fname or lname,
-            // or that the full search string appears in the email.
             $active->where(function ($query) use ($parts, $search) {
                 foreach ($parts as $part) {
                     $query->where(function ($q) use ($part) {
@@ -56,7 +60,6 @@ class EmployeeController extends Controller
                 $query->orWhere('email', 'like', "%{$search}%");
             });
         } else {
-            // Single term: check fname, lname, or email for a match
             $active->where(function ($query) use ($search) {
                 $query->where('fname', 'like', "%{$search}%")
                       ->orWhere('lname', 'like', "%{$search}%")
@@ -85,8 +88,14 @@ class EmployeeController extends Controller
     // Combine both queries using unionAll
     $employeesQuery = $active->unionAll($archived);
 
-    // Retrieve all results (assuming the dataset is manageable)
+    // Retrieve all results
     $allEmployees = $employeesQuery->get();
+
+    // Merge the active application counts into each employee record.
+    $allEmployees->transform(function ($employee) use ($activeCounts) {
+        $employee->active_applications_count = $activeCounts[$employee->employee_id] ?? 0;
+        return $employee;
+    });
 
     // Manual pagination
     $page = $request->get('page', 1);
@@ -112,13 +121,11 @@ class EmployeeController extends Controller
         ->table('vw_active_employees')
         ->select(DB::raw("'Active' as active"))
         ->distinct();
-
     $archivedStatus = DB::connection('viewEmployeesOnly')
         ->table('vw_archived_employees')
         ->select(DB::raw("'Inactive' as active"))
         ->distinct();
 
-    // Since union() does not support orderBy easily, convert to a collection and sort:
     $uniqueStatuses = collect($activeStatus->union($archivedStatus)->get())
         ->pluck('active')
         ->unique()
@@ -134,11 +141,39 @@ class EmployeeController extends Controller
 
 
 
-public function show($employee_id)
-{
-    $employee = Employee::where('employee_id', $employeeId = $employee_id = $employee_id = $employee_id)->firstOrFail();
 
-    return view('employees.show', compact('employee'));
+public function show($employee_id, Request $request)
+{
+    // Try to get active employee first
+    $employee = \App\Models\Employee::where('employee_id', $employee_id)->first();
+
+    // If not found, check archived employees
+    if (!$employee) {
+        $employee = \App\Models\ArchivedEmployee::where('employee_id', $employee_id)->first();
+    }
+
+    // If still not found, throw a 404
+    if (!$employee) {
+        abort(404);
+    }
+
+    // Now that we have the employee (active or archived),
+    // proceed to fetch the employee's applications:
+    $query = DB::table('employee_applications')
+        ->join('applications', 'employee_applications.application_id', '=', 'applications.id')
+        ->join('application_types', 'applications.application_type_id', '=', 'application_types.id')
+        ->where('employee_applications.employee_id', $employee->employee_id)
+        ->whereNull('employee_applications.deleted_at')
+        ->select('applications.*', 'application_types.type_name as type_name', 'employee_applications.status as status');
+
+    if ($request->has('sort_by') && in_array($request->get('sort_by'), ['app_name', 'type_name', 'status'])) {
+        $order = $request->get('order', 'asc') === 'desc' ? 'desc' : 'asc';
+        $query->orderBy($request->get('sort_by'), $order);
+    }
+
+    $applications = $query->get();
+
+    return view('employees.show', compact('employee', 'applications'));
 }
 
 
@@ -165,6 +200,12 @@ public function updateSelected(Request $request)
         'status' => 'success',
         'selectedEmployees' => session('selectedEmployees') ?? []
     ]);
+}
+
+public function selectedData()
+{
+    $selectedEmployees = session('selectedEmployees') ?? [];
+    return response()->json($selectedEmployees);
 }
 
 public function selected()

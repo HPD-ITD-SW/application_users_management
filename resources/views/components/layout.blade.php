@@ -77,5 +77,21 @@
     <footer class="p-6 bg-white shadow text-center">
         &copy; {{ date('Y') }} AUM. All rights reserved.
     </footer>
+    <script>
+        // Save the current scroll position before the page unloads
+        window.addEventListener("beforeunload", function() {
+            localStorage.setItem("scrollPosition", window.scrollY);
+        });
+    
+        // When the page loads, restore the scroll position if available
+        window.addEventListener("load", function() {
+            const scrollPosition = localStorage.getItem("scrollPosition");
+            if (scrollPosition) {
+                window.scrollTo(0, scrollPosition);
+                localStorage.removeItem("scrollPosition");
+            }
+        });
+    </script>
+    
     </body>
 </html>
