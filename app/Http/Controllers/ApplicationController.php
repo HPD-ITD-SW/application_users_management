@@ -55,7 +55,7 @@ class ApplicationController extends Controller
         ];
     });
 
-    // Sorting logic (if applicable)
+    // Apply sorting logic if requested
     if (request()->has('sort_by')) {
         $sortBy = request('sort_by');
         $order  = request('order', 'asc');
@@ -72,21 +72,23 @@ class ApplicationController extends Controller
         $employeeDetails = $employeeDetails->values();
     }
 
-    // Paginate the collection manually
+    // Manually paginate the collection
     $page = Paginator::resolveCurrentPage();
-    $perPage = 15; // set items per page as needed
+    $perPage = 15;
     $paginatedEmployeeDetails = new LengthAwarePaginator(
         $employeeDetails->forPage($page, $perPage),
         $employeeDetails->count(),
         $perPage,
         $page,
-        ['path' => Paginator::resolveCurrentPath()]
+        [
+            'path'  => Paginator::resolveCurrentPath(),
+            'query' => request()->query() // Ensure sort parameters are appended
+        ]
     );
 
     return view('applications.show', [
-        'application'      => $application,
-        'employeeDetails'  => $paginatedEmployeeDetails,
+        'application'     => $application,
+        'employeeDetails' => $paginatedEmployeeDetails,
     ]);
 }
-    
 }
