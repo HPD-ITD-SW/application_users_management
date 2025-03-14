@@ -1,4 +1,4 @@
-<x-layout>  
+<x-layout>
     <x-slot name="title">{{ $application->app_name }}</x-slot>
 
     <x-slot name="header">
@@ -51,27 +51,49 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Name</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Name</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">HR Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">App Status</th>
-                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First
+                            Name</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last
+                            Name</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Department</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">HR
+                            Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">App
+                            Status</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    @foreach($employeeDetails as $employee)
+                    @foreach ($employeeDetails as $employee)
                         <tr class="hover:bg-gray-50">
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $employee['fname'] }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $employee['lname'] }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $employee['email'] }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $employee['department'] }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $employee['hr_status'] }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $employee['department'] }}
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <div class="flex items-center employee-active">
+                                    @if ($employee['hr_status'] === 'Active')
+                                        <span class="inline-block w-3 h-3 bg-green-500 rounded-full mr-2"></span>
+                                    @endif
+                                    <span
+                                        class="text-sm text-gray-900 employee-status-text">{{ $employee['hr_status'] }}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                @if (strtolower(trim($employee['app_status'])) === 'active')
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                                     {{ $employee['app_status'] }}
                                 </span>
+                            @else
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                    {{ $employee['app_status'] }}
+                                </span>
+                            @endif                            
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-indigo-600 hover:text-indigo-900">
                                 <a href="{{ route('employees.show', $employee['employee_id']) }}">
@@ -82,13 +104,13 @@
                     @endforeach
                 </tbody>
             </table>
-        
-            @if($employeeDetails->isEmpty())
+
+            @if ($employeeDetails->isEmpty())
                 <div class="text-center py-6 text-gray-500">
-                    No active users found for this application.
+                    No users found for this application.
                 </div>
             @endif
         </div>
-        
+
     </div>
 </x-layout>

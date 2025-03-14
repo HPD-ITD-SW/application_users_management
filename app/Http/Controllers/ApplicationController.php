@@ -22,12 +22,16 @@ class ApplicationController extends Controller
         // Fetch application details and active pivot entries
         $application = Application::with('applicationType')
             ->with(['employeeApplications' => function ($query) {
-                $query->where('status', 'Active')->whereNull('deleted_at');
+                // Load all records that haven't been deleted
+                $query->whereNull('deleted_at');
             }])
             ->withCount(['employeeApplications' => function ($query) {
-                $query->where('status', 'Active')->whereNull('deleted_at');
+                // Only count the active ones
+                $query->where('status', 'Active')
+                    ->whereNull('deleted_at');
             }])
             ->findOrFail($id);
+
 
         // Get all employee IDs associated with this application clearly
         $employeeIds = $application->employeeApplications->pluck('employee_id')->toArray();
@@ -52,4 +56,3 @@ class ApplicationController extends Controller
         return view('applications.show', compact('application', 'employeeDetails'));
     }
 }
-

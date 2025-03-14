@@ -148,7 +148,10 @@ public function updateSelected(Request $request)
         'selectedEmployees' => 'present|array',
         'selectedEmployees.*.fname' => 'required|string|max:255',
         'selectedEmployees.*.lname' => 'required|string|max:255',
-        'selectedEmployees.*.email' => 'required|string|max:255', // or 'required|email|max:255' if you need valid emails
+        'selectedEmployees.*.email' => 'required|string|max:255',
+        'selectedEmployees.*.division' => 'string|max:255',
+        'selectedEmployees.*.status' => 'string|max:255',
+        'selectedEmployees.*.employee_id' => 'required|string|max:255',
     ]);
 
     // If the selectedEmployees array is empty, clear it from the session.
@@ -163,6 +166,27 @@ public function updateSelected(Request $request)
         'selectedEmployees' => session('selectedEmployees') ?? []
     ]);
 }
+
+public function selected()
+{
+    $selectedEmployees = collect(session('selectedEmployees', []));
+
+    // Get employee IDs clearly for querying the pivot table
+    $employeeIds = $selectedEmployees->pluck('employee_id')->filter()->toArray();
+
+    // Fetch applications for selected employees
+    $employeeApps = DB::table('employee_applications')
+        ->join('applications', 'employee_applications.application_id', '=', 'applications.id')
+        ->whereIn('employee_applications.employee_id', $employeeIds)
+        ->whereNull('employee_applications.deleted_at')
+        ->select('employee_applications.*', 'applications.app_name')
+        ->get()
+        ->groupBy('employee_id');
+
+    return view('employees.selected', compact('selectedEmployees', 'employeeApps'));
+}
+
+
 
 
 

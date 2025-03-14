@@ -1,5 +1,5 @@
 <x-layout>  
-    <x-slot name="title">{{ $employee->fname }} {{ $employee->lname }}</x-slot>
+    <x-slot name="title">User Details</x-slot>
 
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
